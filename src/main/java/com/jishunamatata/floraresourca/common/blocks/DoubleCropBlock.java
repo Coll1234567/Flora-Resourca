@@ -57,6 +57,11 @@ public class DoubleCropBlock extends DoublePlantBlock implements IWaterLoggable,
 	}
 
 	@Override
+	public OffsetType getOffsetType() {
+		return OffsetType.NONE;
+	}
+
+	@Override
 	protected void fillStateContainer(Builder<Block, BlockState> builder) {
 		super.fillStateContainer(builder);
 		builder.add(STAGE, WATERLOGGED);
@@ -74,17 +79,13 @@ public class DoubleCropBlock extends DoublePlantBlock implements IWaterLoggable,
 			return ActionResultType.PASS;
 		}
 
-		DoubleBlockHalf half = state.get(BlockStateProperties.DOUBLE_BLOCK_HALF);
-
-		if (half == DoubleBlockHalf.UPPER) {
+		if (state.get(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.UPPER) {
 			pos = pos.down();
 			state = worldIn.getBlockState(pos);
 
-			if (!(state.getBlock() instanceof DoubleCropBlock)) {
+			if (state.getBlock() != this)
 				return ActionResultType.PASS;
-			}
 		}
-
 		if (state.get(STAGE) != getMaxAge()) {
 			return ActionResultType.PASS;
 		}
@@ -200,7 +201,7 @@ public class DoubleCropBlock extends DoublePlantBlock implements IWaterLoggable,
 
 	@Override
 	public boolean canGrow(IBlockReader worldIn, BlockPos pos, BlockState state, boolean isClient) {
-		return !this.isMaxAge(state) && state.get(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.LOWER;
+		return !this.isMaxAge(state);
 	}
 
 	@Override
@@ -210,6 +211,13 @@ public class DoubleCropBlock extends DoublePlantBlock implements IWaterLoggable,
 
 	@Override
 	public void grow(ServerWorld worldIn, Random random, BlockPos pos, BlockState state) {
+		if (state.get(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.UPPER) {
+			pos = pos.down();
+			state = worldIn.getBlockState(pos);
+
+			if (state.getBlock() != this)
+				return;
+		}
 		int age = Math.min(this.getAge(state) + 1, this.getMaxAge());
 		worldIn.setBlockState(pos, this.withAge(age), 2);
 		worldIn.setBlockState(pos.up(), this.withAge(age).with(HALF, DoubleBlockHalf.UPPER).with(WATERLOGGED, false),
